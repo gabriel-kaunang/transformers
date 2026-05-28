@@ -48,6 +48,8 @@ from .configuration_llama import LlamaConfig
 
 logger = logging.get_logger(__name__)
 
+import os
+import numpy as np
 
 @use_kernel_forward_from_hub("RMSNorm")
 class LlamaRMSNorm(nn.Module):
@@ -209,6 +211,32 @@ def eager_attention_forward(
     key_states = repeat_kv(key, module.num_key_value_groups)
     value_states = repeat_kv(value, module.num_key_value_groups)
 
+    """ 
+    print("---")
+    print(query.shape)
+    print(key.shape)
+    print(value.shape)
+    print("---")
+    """
+    SAVE_DIR = "/home/gabs/intermediate_activations/run/values"
+    query_path = f"{SAVE_DIR}/query.npy"
+    key_path = f"{SAVE_DIR}/key_transposed.npy"
+    output_unscaled_path = f"{SAVE_DIR}/qk_matmul_output_unscaled.npy"
+    output_scaled_path = f"{SAVE_DIR}/qk_matmul_output_scaled.npy"
+    key_for_matmul = key_states.transpose(2, 3)
+    matmul_output_unscaled = torch.matmul(query, key_for_matmul)
+    matmul_output_scaled = matmul_output_unscaled * scaling
+    if not os.path.exists(output_scaled_path):
+        np.save(query_path, query.detach().float().cpu().numpy())
+        np.save(key_path, key_for_matmul.detach().float().cpu().numpy())
+        np.save(
+            output_unscaled_path,
+            matmul_output_unscaled.detach().float().cpu().numpy(),
+        )
+        np.save(
+            output_scaled_path,
+            matmul_output_scaled.detach().float().cpu().numpy(),
+    )
     attn_weights = torch.matmul(query, key_states.transpose(2, 3)) * scaling
     if attention_mask is not None:
         attn_weights = attn_weights + attention_mask
