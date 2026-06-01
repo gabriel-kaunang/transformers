@@ -182,6 +182,21 @@ class LlamaMLP(nn.Module):
         self.act_fn = ACT2FN[config.hidden_act]
 
     def forward(self, x):
+        # TODO: add projection exports
+        SAVE_DIR = "/home/gabs/intermediate_activations/run/values/fc"
+        input_path = f"{SAVE_DIR}/mlp_gate_input.npy"
+        weight_path = f"{SAVE_DIR}/mlp_gate_weight.npy"
+        bias_path = f"{SAVE_DIR}/mlp_gate_bias.npy"
+        output_path = f"{SAVE_DIR}/mlp_gate_output.npy"
+        #print(self.gate_proj.bias)
+        if not os.path.exists(output_path):
+            gate_output = self.gate_proj(x)
+            np.save(input_path, x.detach().float().cpu().numpy())
+            np.save(weight_path, self.gate_proj.weight.detach().float().cpu().numpy())
+            if self.gate_proj.bias is not None:
+                np.save(bias_path, self.gate_proj.bias.detach().float().cpu().numpy())
+            np.save(output_path, gate_output.detach().float().cpu().numpy())
+
         down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
         return down_proj
 
@@ -223,10 +238,10 @@ def eager_attention_forward(
     key_path = f"{SAVE_DIR}/key_transposed.npy"
     output_unscaled_path = f"{SAVE_DIR}/qk_matmul_output_unscaled.npy"
     output_scaled_path = f"{SAVE_DIR}/qk_matmul_output_scaled.npy"
-    key_for_matmul = key_states.transpose(2, 3)
-    matmul_output_unscaled = torch.matmul(query, key_for_matmul)
-    matmul_output_scaled = matmul_output_unscaled * scaling
     if not os.path.exists(output_scaled_path):
+        key_for_matmul = key_states.transpose(2, 3)
+        matmul_output_unscaled = torch.matmul(query, key_for_matmul)
+        matmul_output_scaled = matmul_output_unscaled * scaling
         np.save(query_path, query.detach().float().cpu().numpy())
         np.save(key_path, key_for_matmul.detach().float().cpu().numpy())
         np.save(
