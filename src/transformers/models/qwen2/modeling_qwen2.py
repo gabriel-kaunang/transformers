@@ -228,6 +228,12 @@ class Qwen2Attention(nn.Module):
             self.config._attn_implementation, eager_attention_forward
         )
 
+        # huggingface has some automated scripts that generate/build the final model files,
+        # like modeling_*.py, from the modular_*.py files
+        # those scripts live outside src/transformers, so after installing transformers
+        # normally, the actual converter script is gone / not included in the installed package.
+        # for now, just hack this implementation directly, this is the right place to
+        # start debugging the runtime for intermediate values
         attn_output, attn_weights = attention_interface(
             self,
             query_states,
