@@ -233,7 +233,7 @@ class Qwen2Attention(nn.Module):
         # those scripts live outside src/transformers, so after installing transformers
         # normally, the actual converter script is gone / not included in the installed package.
         # for now, just hack this implementation directly, this is the right place to
-        # start debugging the runtime for intermediate values
+        # start debugging the runtime for getting intermediate values
         attn_output, attn_weights = attention_interface(
             self,
             query_states,
